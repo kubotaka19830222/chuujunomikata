@@ -4,35 +4,16 @@
     {
       "src": "api/webhook.js",
       "use": "@vercel/node"
-    },
-    {
-      "src": "api/video-database.js",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
-      "src": "/api/webhook",
-      "dest": "/api/webhook.js"
-    },
-    {
-      "src": "/api/(health|stats|database)",
-      "dest": "/api/webhook.js"
-    },
-    {
-      "src": "/api/admin/(.*)",
+      "src": "/api/(.*)",
       "dest": "/api/webhook.js"
     }
   ],
-  "functions": {
-    "api/webhook.js": {
-      "maxDuration": 10,
-      "memory": 1024
-    }
-  },
   "env": {
     "NODE_ENV": "production"
   },
-  "regions": ["nrt1"],
-  "crons": []
+  "regions": ["nrt1"]
 }
