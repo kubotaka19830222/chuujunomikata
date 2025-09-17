@@ -2,6 +2,7 @@
 const express = require('express');
 const line = require('@line/bot-sdk');
 const { videoDatabase, VideoManager, findRelevantVideos } = require('./video-database');
+const { AIResponder } = require('./ai-responder');
 
 const app = express();
 
@@ -20,6 +21,9 @@ const PERFORMANCE_CONFIG = {
 };
 
 const client = new line.Client(config);
+
+// AI回答生成器を初期化
+const aiResponder = new AIResponder();
 
 // ユーザー状態管理
 const userStates = new Map();
@@ -172,12 +176,42 @@ async function handleMessage(text, userId) {
     });
   }
 
-  // 6. 基本応答（パターンにマッチしない場合）
+  // 6. AI回答生成（パターンにマッチしない場合）
   if (!fixedMatch && !dynamicMatch) {
-    messages.push({
-      type: 'text',
-      text: `中学受験のお悩み、お聞かせいただきありがとうございます😊\n\nお子さまの状況に合わせて、専門家の実践的なアドバイス動画をご紹介しますね✨`
-    });
+    try {
+      // 講師名を抽出
+      const educatorName = aiResponder.extractEducatorName(text);
+      
+      // ユーザーの相談履歴を取得
+      const userHistory = userState.consultationHistory || [];
+      
+      // コンテキスト情報を構築
+      const context = {
+        previousVideos: relevantVideos,
+        userHistory: userHistory.slice(-3) // 直近3回の相談履歴
+      };
+
+      let aiResponse;
+      if (educatorName) {
+        // 特定の講師の考え方で回答
+        aiResponse = await aiResponder.generateEducatorResponse(educatorName, text, context);
+      } else {
+        // 一般的な回答
+        aiResponse = await aiResponder.generateGeneralResponse(text, context);
+      }
+
+      messages.push({
+        type: 'text',
+        text: aiResponse
+      });
+    } catch (error) {
+      console.error('AI Response Error:', error);
+      // フォールバック回答
+      messages.push({
+        type: 'text',
+        text: `中学受験のお悩み、お聞かせいただきありがとうございます😊\n\nお子さまの状況に合わせて、専門家の実践的なアドバイス動画をご紹介しますね✨`
+      });
+    }
   }
 
   // 7. 動画推薦
