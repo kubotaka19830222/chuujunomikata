@@ -1,8 +1,9 @@
 // 拡張可能な中学受験相談LINE Bot実装
 const express = require('express');
 const line = require('@line/bot-sdk');
-const { videoDatabase, VideoManager, findRelevantVideos } = require('./video-database');
+const { videoDatabase, VideoManager, findRelevantVideos, updateFromSheets } = require('./video-database');
 const { AIResponder } = require('./ai-responder');
+const { SheetsLoader } = require('./sheets-loader');
 
 const app = express();
 
@@ -25,8 +26,21 @@ const client = new line.Client(config);
 // AI回答生成器を初期化
 const aiResponder = new AIResponder();
 
+// スプレッドシートローダーを初期化
+const sheetsLoader = new SheetsLoader();
+
 // ユーザー状態管理
 const userStates = new Map();
+
+// 起動時にスプレッドシートからデータを読み込み
+(async () => {
+  try {
+    await updateFromSheets();
+    console.log('📊 スプレッドシートから動画データを読み込みました');
+  } catch (error) {
+    console.error('スプレッドシート読み込みエラー:', error);
+  }
+})();
 
 // 動的応答パターン（データベースから自動生成）
 function generateResponsePatterns() {
@@ -427,6 +441,63 @@ app.post('/api/admin/video', async (req, res) => {
     res.json({ success: true, videoId, message: 'Video added successfully' });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+});
+
+// 管理者向けAPI：スプレッドシートから動画を追加
+app.post('/api/admin/sheets/video', async (req, res) => {
+  try {
+    const { adminKey, videoData } = req.body;
+    
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const success = await sheetsLoader.addVideoToSheet(videoData);
+    if (success) {
+      // メモリ内のデータベースも更新
+      VideoManager.addVideo(videoData);
+      res.json({ success: true, message: 'Video added to spreadsheet and database' });
+    } else {
+      res.status(500).json({ error: 'Failed to add video to spreadsheet' });
+    }
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 管理者向けAPI：スプレッドシートからデータをリロード
+app.post('/api/admin/sheets/reload', async (req, res) => {
+  try {
+    const { adminKey } = req.body;
+    
+    if (adminKey !== process.env.ADMIN_KEY) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const result = await updateFromSheets();
+    res.json({ 
+      success: true, 
+      message: 'Data reloaded from spreadsheet',
+      videos: result.videos.length,
+      educators: Object.keys(result.educators).length
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// 管理者向けAPI：スプレッドシート接続テスト
+app.get('/api/admin/sheets/test', async (req, res) => {
+  try {
+    const result = await sheetsLoader.testConnection();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ 
+      success: false, 
+      error: error.message,
+      message: 'Connection test failed'
+    });
   }
 });
 

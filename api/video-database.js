@@ -1,5 +1,5 @@
 // 拡張可能な中学受験YouTube動画データベース
-const videoDatabase = {
+let videoDatabase = {
     // 各講師の基本情報
     educators: {
       "佐藤亮子": {
@@ -475,8 +475,35 @@ const videoDatabase = {
   // 統計情報表示
   console.log("データベース統計:", VideoManager.getStats());
   
+  // スプレッドシートから動画データを更新する関数
+  async function updateFromSheets() {
+    try {
+      const { SheetsLoader } = require('./sheets-loader');
+      const sheetsLoader = new SheetsLoader();
+      
+      const videos = await sheetsLoader.loadVideosFromSheet();
+      const educators = await sheetsLoader.loadEducatorsFromSheet();
+      
+      if (videos.length > 0) {
+        videoDatabase.videos = videos;
+        console.log(`📊 スプレッドシートから ${videos.length} 本の動画を更新しました`);
+      }
+      
+      if (Object.keys(educators).length > 0) {
+        videoDatabase.educators = { ...videoDatabase.educators, ...educators };
+        console.log(`👨‍🏫 スプレッドシートから ${Object.keys(educators).length} 名の講師を更新しました`);
+      }
+      
+      return { videos, educators };
+    } catch (error) {
+      console.error('スプレッドシート更新エラー:', error);
+      return { videos: [], educators: {} };
+    }
+  }
+
   module.exports = {
     videoDatabase,
     VideoManager,
-    findRelevantVideos
+    findRelevantVideos,
+    updateFromSheets
   };
