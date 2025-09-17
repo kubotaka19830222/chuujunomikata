@@ -344,7 +344,8 @@ const videoDatabase = {
       educatorPreference = null, // 特定の講師を優先
       categoryFilter = null,     // 特定のカテゴリのみ
       gradeFilter = null,        // 特定の学年のみ
-      onlyVerified = true        // 検証済みのみ
+      onlyVerified = true,       // 検証済みのみ
+      minRelevanceScore = 10     // 最小関連度スコア（新規追加）
     } = options;
   
     let videos = videoDatabase.videos;
@@ -385,30 +386,39 @@ const videoDatabase = {
       // タグマッチング（重み調整）
       video.tags.forEach(tag => {
         if (consultationText.includes(tag)) {
-          relevanceScore += 8;
+          relevanceScore += 10; // 重みを増加
         }
       });
-  
+
       // カテゴリマッチング
       if (consultationText.includes(video.category)) {
-        relevanceScore += 6;
+        relevanceScore += 8; // 重みを増加
       }
-  
-      // タイトルマッチング
+
+      // タイトルマッチング（部分一致も考慮）
       const titleWords = video.title.split(/\s+/);
       titleWords.forEach(word => {
         if (consultationText.includes(word)) {
-          relevanceScore += 4;
+          relevanceScore += 6; // 重みを増加
+        }
+        // 部分一致も考慮
+        if (word.length > 2 && consultationText.includes(word.substring(0, 3))) {
+          relevanceScore += 2;
         }
       });
-  
+
       // 説明マッチング
       const descWords = video.description.split(/\s+/);
       descWords.forEach(word => {
         if (consultationText.includes(word)) {
-          relevanceScore += 2;
+          relevanceScore += 3; // 重みを増加
         }
       });
+
+      // サブカテゴリマッチング
+      if (video.subcategory && consultationText.includes(video.subcategory)) {
+        relevanceScore += 5;
+      }
   
       // 対象読者マッチング
       video.target_audience.forEach(audience => {
@@ -426,7 +436,7 @@ const videoDatabase = {
   
     // スコア順でソート、上位を返す
     return scoredVideos
-      .filter(video => video.relevanceScore > 0)
+      .filter(video => video.relevanceScore >= minRelevanceScore) // 最小スコア以上のみ
       .sort((a, b) => {
         // まず関連度スコア、同じ場合は講師の優先度
         if (b.relevanceScore !== a.relevanceScore) {

@@ -160,6 +160,7 @@ async function handleMessage(text, userId) {
   const searchOptions = {
     maxResults: PERFORMANCE_CONFIG.maxVideosPerResponse,
     onlyVerified: true,
+    minRelevanceScore: 15, // 関連度スコアの閾値を上げる
     ...((fixedMatch && fixedMatch.searchOptions) || {}),
     ...((dynamicMatch && dynamicMatch.educatorFilter) ? { educatorPreference: dynamicMatch.educatorFilter } : {}),
     ...((dynamicMatch && dynamicMatch.category) ? { categoryFilter: dynamicMatch.category } : {})
@@ -239,7 +240,7 @@ async function handleMessage(text, userId) {
 
     messages.push({
       type: 'text',
-      text: `申し訳ございません。お悩みに合った動画が見つかりませんでした😅\n\n以下のような内容でしたらお手伝いできます：\n${availableCategories.map(cat => `• ${cat}`).join('\n')}\n\n具体的なお悩みをお聞かせください✨`
+      text: `お疲れ様です😊 申し訳ございませんが、お悩みに合った動画が見つかりませんでした。\n\n以下のような内容でしたらお手伝いできます：\n${availableCategories.map(cat => `• ${cat}`).join('\n')}\n\nもう少し具体的なお悩みをお聞かせいただけますか？お子さんの状況を詳しく教えていただければ、より適切なアドバイスをご提供できます✨`
     });
   }
 
