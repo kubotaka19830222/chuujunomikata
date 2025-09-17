@@ -219,6 +219,7 @@ async function handleMessage(text, userId) {
   });
 
   // 9. 相談履歴保存
+  const educatorsInResults = [...new Set(relevantVideos.map(v => v.educator))];
   userState.consultationHistory.push({
     question: text,
     timestamp: new Date(),
