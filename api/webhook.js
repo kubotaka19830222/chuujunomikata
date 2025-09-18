@@ -7,6 +7,10 @@ const { SheetsLoader } = require('./sheets-loader');
 
 const app = express();
 
+// JSONパーサーの設定
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
 // 設定（コスト最適化）
 const config = {
   channelAccessToken: process.env.CHANNEL_ACCESS_TOKEN,
@@ -215,10 +219,9 @@ async function handleMessage(text, userId) {
         aiResponse = await aiResponder.generateGeneralResponse(text, context);
       }
 
-      messages.push({
-        type: 'text',
-        text: aiResponse
-      });
+      // 長い回答を複数のメッセージに分割
+      const splitMessages = splitLongMessage(aiResponse);
+      messages.push(...splitMessages);
     } catch (error) {
       console.error('AI Response Error:', error);
       // フォールバック回答
@@ -425,6 +428,64 @@ function extractVideoId(url) {
 // テキスト切り取り
 function truncateText(text, maxLength) {
   return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+}
+
+// 長いメッセージを複数のメッセージに分割
+function splitLongMessage(text, maxLength = 200) {
+  if (text.length <= maxLength) {
+    return [{ type: 'text', text: text }];
+  }
+
+  const messages = [];
+  
+  // 改行で分割して段落ごとに処理
+  const paragraphs = text.split(/\n\s*\n/);
+  
+  for (const paragraph of paragraphs) {
+    if (paragraph.trim().length === 0) continue;
+    
+    if (paragraph.length <= maxLength) {
+      // 段落が短い場合はそのまま追加
+      messages.push({
+        type: 'text',
+        text: paragraph.trim()
+      });
+    } else {
+      // 段落が長い場合は文単位で分割
+      const sentences = paragraph.split(/([。！？])/);
+      let currentMessage = '';
+      
+      for (let i = 0; i < sentences.length; i += 2) {
+        const sentence = sentences[i]?.trim();
+        const punctuation = sentences[i + 1] || '';
+        
+        if (!sentence) continue;
+        
+        const fullSentence = sentence + punctuation;
+        
+        if (currentMessage.length + fullSentence.length > maxLength && currentMessage.length > 0) {
+          // 現在のメッセージを保存
+          messages.push({
+            type: 'text',
+            text: currentMessage.trim()
+          });
+          currentMessage = fullSentence;
+        } else {
+          currentMessage += (currentMessage ? '' : '') + fullSentence;
+        }
+      }
+      
+      // 残りのメッセージを追加
+      if (currentMessage.trim()) {
+        messages.push({
+          type: 'text',
+          text: currentMessage.trim()
+        });
+      }
+    }
+  }
+
+  return messages;
 }
 
 // 管理者向けAPI：新しい動画を追加

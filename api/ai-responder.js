@@ -96,7 +96,7 @@ class AIResponder {
     try {
       const response = await this.anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
-        max_tokens: 500,
+        max_tokens: 2000,
         temperature: 0.7,
         messages: [{
           role: "user",
@@ -118,7 +118,7 @@ class AIResponder {
     try {
       const response = await this.anthropic.messages.create({
         model: "claude-3-5-sonnet-20241022",
-        max_tokens: 400,
+        max_tokens: 1500,
         temperature: 0.7,
         messages: [{
           role: "user",
@@ -161,7 +161,7 @@ ${context.userHistory ? `相談履歴: ${context.userHistory.length}回` : ''}
 3. 実体験に基づいた具体的で実践的なアドバイスを心がけてください
 4. 希望や励ましの言葉を必ず含めてください
 5. 親しみやすく、信頼できる口調で書いてください
-6. 200文字以内で簡潔にまとめてください
+6. 適切な長さで分かりやすくまとめてください
 7. 絵文字を適度に使用して温かみを演出してください
 
 回答:`;
@@ -184,7 +184,7 @@ ${context.userHistory ? `相談履歴: ${context.userHistory.length}回` : ''}
 3. 中学受験の専門知識を活かした具体的で実践的なアドバイスを心がけてください
 4. 希望や励ましの言葉を必ず含めてください
 5. 親しみやすく、信頼できる口調で書いてください
-6. 200文字以内で簡潔にまとめてください
+6. 適切な長さで分かりやすくまとめてください
 7. 絵文字を適度に使用して温かみを演出してください
 
 回答:`;
