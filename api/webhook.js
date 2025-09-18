@@ -508,35 +508,61 @@ app.post('/api/admin/video', async (req, res) => {
 // 管理者向けAPI：スプレッドシートから動画を追加
 app.post('/api/admin/sheets/video', async (req, res) => {
   try {
+    console.log('📹 動画アップロード開始');
+    
     const { adminKey, videoData } = req.body;
     
     if (adminKey !== process.env.ADMIN_KEY) {
+      console.log('❌ 認証エラー: 管理者キーが無効');
       return res.status(401).json({ error: 'Unauthorized' });
     }
+
+    console.log('✅ 認証成功、動画データ:', {
+      id: videoData.id,
+      title: videoData.title,
+      educator: videoData.educator
+    });
 
     const success = await sheetsLoader.addVideoToSheet(videoData);
     if (success) {
       // メモリ内のデータベースも更新
       VideoManager.addVideo(videoData);
+      console.log('✅ 動画追加完了:', videoData.id);
       res.json({ success: true, message: 'Video added to spreadsheet and database' });
     } else {
+      console.log('❌ 動画追加失敗');
       res.status(500).json({ error: 'Failed to add video to spreadsheet' });
     }
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ 動画アップロードエラー:', error);
+    res.status(500).json({ 
+      error: error.message,
+      message: 'Failed to add video',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
 // 管理者向けAPI：スプレッドシートからデータをリロード
 app.post('/api/admin/sheets/reload', async (req, res) => {
   try {
+    console.log('🔄 スプレッドシートリロード開始');
+    
     const { adminKey } = req.body;
     
     if (adminKey !== process.env.ADMIN_KEY) {
+      console.log('❌ 認証エラー: 管理者キーが無効');
       return res.status(401).json({ error: 'Unauthorized' });
     }
 
+    console.log('✅ 認証成功、スプレッドシートからデータを読み込み中...');
     const result = await updateFromSheets();
+    
+    console.log('✅ リロード完了:', {
+      videos: result.videos.length,
+      educators: Object.keys(result.educators).length
+    });
+    
     res.json({ 
       success: true, 
       message: 'Data reloaded from spreadsheet',
@@ -544,20 +570,48 @@ app.post('/api/admin/sheets/reload', async (req, res) => {
       educators: Object.keys(result.educators).length
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ リロードエラー:', error);
+    res.status(500).json({ 
+      error: error.message,
+      message: 'Failed to reload data from spreadsheet',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
 // 管理者向けAPI：スプレッドシート接続テスト
 app.get('/api/admin/sheets/test', async (req, res) => {
   try {
+    console.log('🔍 スプレッドシート接続テスト開始');
+    
+    // 環境変数チェック
+    const envCheck = {
+      GOOGLE_CLIENT_EMAIL: !!process.env.GOOGLE_CLIENT_EMAIL,
+      GOOGLE_PRIVATE_KEY: !!process.env.GOOGLE_PRIVATE_KEY,
+      SHEETS_SPREADSHEET_ID: !!process.env.SHEETS_SPREADSHEET_ID
+    };
+    
+    console.log('環境変数チェック:', envCheck);
+    
+    if (!envCheck.GOOGLE_CLIENT_EMAIL || !envCheck.GOOGLE_PRIVATE_KEY || !envCheck.SHEETS_SPREADSHEET_ID) {
+      return res.status(400).json({
+        success: false,
+        error: 'Missing required environment variables',
+        message: '必要な環境変数が設定されていません',
+        envCheck: envCheck
+      });
+    }
+    
     const result = await sheetsLoader.testConnection();
+    console.log('✅ スプレッドシート接続テスト完了:', result);
     res.json(result);
   } catch (error) {
+    console.error('❌ スプレッドシート接続テストエラー:', error);
     res.status(500).json({ 
       success: false, 
       error: error.message,
-      message: 'Connection test failed'
+      message: 'Connection test failed',
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 });

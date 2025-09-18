@@ -191,8 +191,16 @@ class SheetsLoader {
   // スプレッドシートの設定をテスト
   async testConnection() {
     try {
+      console.log('🔍 スプレッドシート接続テスト開始');
+      
       const spreadsheetId = process.env.SHEETS_SPREADSHEET_ID;
       const range = 'Videos!A1:O1'; // ヘッダー行のみ
+
+      console.log('接続情報:', {
+        spreadsheetId: spreadsheetId ? '設定済み' : '未設定',
+        range: range,
+        authConfigured: !!this.auth
+      });
 
       const response = await this.sheets.spreadsheets.values.get({
         auth: this.auth,
@@ -206,15 +214,22 @@ class SheetsLoader {
       return {
         success: true,
         headers: headers,
-        message: 'スプレッドシート接続成功'
+        message: 'スプレッドシート接続成功',
+        spreadsheetId: spreadsheetId,
+        range: range
       };
 
     } catch (error) {
-      console.error('スプレッドシート接続テストエラー:', error);
+      console.error('❌ スプレッドシート接続テストエラー:', error);
       return {
         success: false,
         error: error.message,
-        message: 'スプレッドシート接続失敗'
+        message: 'スプレッドシート接続失敗',
+        details: {
+          code: error.code,
+          status: error.status,
+          spreadsheetId: process.env.SHEETS_SPREADSHEET_ID ? '設定済み' : '未設定'
+        }
       };
     }
   }
