@@ -696,6 +696,13 @@ app.get('/api/health', (req, res) => {
       database: VideoManager.getStats().totalVideos > 0 ? 'healthy' : 'warning',
       lineBot: process.env.CHANNEL_ACCESS_TOKEN ? 'healthy' : 'error',
       memory: process.memoryUsage().heapUsed / 1024 / 1024 < 100 ? 'healthy' : 'warning'
+    },
+    environment: {
+      nodeEnv: process.env.NODE_ENV,
+      hasAdminKey: !!process.env.ADMIN_KEY,
+      hasGoogleEmail: !!process.env.GOOGLE_CLIENT_EMAIL,
+      hasGoogleKey: !!process.env.GOOGLE_PRIVATE_KEY,
+      hasSheetsId: !!process.env.SHEETS_SPREADSHEET_ID
     }
   };
 
